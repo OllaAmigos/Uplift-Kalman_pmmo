@@ -1,61 +1,84 @@
-# Uplift-моделирование с фильтром Калмана
+# Uplift modeling with Kalman filtering
 
-Этот проект демонстрирует использование uplift-моделирования и фильтра Калмана на основе датасета `sklift.datasets.fetch_x5`. Подробнее о датасете в [официальной документации](https://www.uplift-modeling.com/en/latest/api/datasets/fetch_x5.html).
+**Research case study** · Causal uplift · State-space modeling · Customer behavior
 
----
+This project explores a difficult marketing question: **can we transfer what we learn from an intervention in one customer population to another population where an intervention is not feasible?**
 
-## Бизнес-задача
+The approach combines feature engineering from customer transactions, **latent-state estimation using a Kalman filter**, and **uplift modeling**. The result is an exploratory methodology rather than a validated business deployment.
 
-### Сценарий
-- Два города: **богатый город (Y)** и **бедный город (X)**.
-- Проведение промо-кампании возможно только в богатом городе
-- Мы пробуем использовать результаты кампании в богатом городе для прогноза результатов в бедном городе
+## Business context
 
-### Цели
-- Спрогнозировать результаты рекламной кампании в бедном городе (X)
+Imagine two cities with different customer profiles:
 
-### Задачи
-1. Подготовить и предобработать необходимые данные.
-2. Восстановить скрытые характеристики покупателей в бедном городе (X)
-3. Разработать uplift-модель для богатого города (Y)
-4. Применить и оценить uplift-модель для бедного города (X)
+- **City Y**: a wealthier population where a promotion can be run and treatment outcomes can be observed.
+- **City X**: a less wealthy population where launching the promotion is not currently possible.
 
----
+The goal is to study whether patterns learned in City Y can help prioritize customers or estimate potential response in City X. This is a **domain-transfer assumption**, not evidence that treatment effects are transportable.
 
-## Техническая постановка задачи
+## Research workflow
 
-### Дано:
-- Данные о потребителях из богатого города (Y)
-- Данные имеют панельную структуру, включая:
-  - Идентификаторы транзакций
-  - Временные метки
-  - Суммы покупок
-  - Состав корзин
+```text
+Transactions / customers / products
+            │
+            ▼
+     Feature engineering
+            │
+            ▼
+    Panel-data construction
+            │
+            ▼
+  Linear state-space formulation
+            │
+            ▼
+      Kalman filtering
+  (latent customer features)
+            │
+            ▼
+  Uplift modeling in City Y
+            │
+            ▼
+  Exploratory scoring in City X
+```
 
-### Задачи:
-1. Обучить модель пространственного состояния.
-2. Восстановить скрытые состояния с помощью **фильтра Калмана**.
-3. Оценить uplift-модель для бедного города (X)
+## Notebooks
 
----
+| Order | Notebook | Purpose |
+| --- | --- | --- |
+| 0 | [`0_data_collect.ipynb`](uplift_and_kalman/0_data_collect.ipynb) | Inspect source files and split customer cohorts |
+| 1 | [`1_feature_modeling.ipynb`](uplift_and_kalman/1_feature_modeling.ipynb) | Build transaction-level and customer features |
+| 2 | [`2_EDA.ipynb`](uplift_and_kalman/2_EDA.ipynb) | Explore distributions, correlations and data quality |
+| 3 | [`3_do_preproc.ipynb`](uplift_and_kalman/3_do_preproc.ipynb) | Construct a prepared panel dataset |
+| 4 | [`4_LSS_and_Kalman.ipynb`](uplift_and_kalman/4_LSS_and_Kalman.ipynb) | Estimate a linear state-space representation and restore latent features |
+| 5 | [`5_Uplift.ipynb`](uplift_and_kalman/5_Uplift.ipynb) | Train an exploratory uplift model and inspect its scores |
 
-## Методология
+The repository also retains the original [`project.pptx`](uplift_and_kalman/project.pptx) and [`project notes`](uplift_and_kalman/ход%20работы.pdf) as supporting research materials.
 
-### Подготовка данных
-- Моделирование новых фичей
-- Очистка и предобработка панельных данных
-- Обеспечение согласованности данных и устранение аномалий
+## Methods and tools
 
+- Time-dependent customer feature engineering from transactional data
+- Linear state-space modeling and Kalman filtering
+- Uplift modeling and gain-curve exploration
+- Python, pandas, NumPy, SciPy, scikit-learn, `pylift`, `causalml`
 
-### Фильтр Калмана
-- Использование фильтра Калмана для восстановления скрытых состояний, представляющих характеристики покупателей
+## Data and reproducibility
 
-### Uplift-моделирование
-- Обучение uplift-модели на данных из богатого города
-- Оценка производительности модели и её обобщение для прогноза в бедном городе
+The research uses the X5 uplift data ecosystem, with original context in the [scikit-uplift X5 dataset documentation](https://www.uplift-modeling.com/en/latest/api/datasets/fetch_x5.html).
 
----
+**Important:** The notebooks currently refer to intermediate CSV exports (including `large_data/...`) which are **not shipped in this repository**. Running the entire notebook sequence from a clean clone is therefore **not yet reproducible** without reconstructing those preprocessing outputs. See [DATA_REQUIREMENTS.md](DATA_REQUIREMENTS.md) for the paths used by the original work.
 
-## Благодарности
-- Третьяку Никита, Хубежовой Диана, Андросовой Ольге - за усердную работу по ночам
-- Чухрову Никите - за постановку интересной задачи и котовьего толстячка
+The following command installs the main import-time dependencies, **but does not by itself make missing data available**:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+## Interpretation & limitations
+
+- The two-city setup is a **research scenario**; differences between populations may introduce covariate and treatment-effect shift.
+- Scores computed for City X **do not establish a causal uplift gain** there without a suitable counterfactual evaluation strategy.
+- The final notebook contains exploratory treatment/outcome manipulations; its plots should **not** be presented as independently validated effects in City X.
+- Additional work would be required for robust holdout validation, transportability checks, and a fully reproducible pipeline.
+
+## Contributors
+
+Original collaborative project by **Olga Androsova, Diana Khubezhova, and Nikita Tretyak**. With thanks to Nikita Chukhrov for the task formulation. The analysis and notebooks are retained as a historical research project.
